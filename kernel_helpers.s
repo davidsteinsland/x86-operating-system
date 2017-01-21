@@ -77,3 +77,13 @@ get_ecx:
 get_edx:
 	mov %edx, %eax
 	ret
+
+.globl get_esi
+get_esi:
+	mov %esi, %eax
+	ret
+
+.globl get_edi
+get_edi:
+	mov %edi, %eax
+	ret

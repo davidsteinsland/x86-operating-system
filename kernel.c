@@ -1,14 +1,22 @@
 #include <stdint.h>
 #include <gdt.h>
 #include <screen.h>
+#include <io.h>
 
 /* defined in kernel_helpers.s */
 extern uint32_t get_eax(void);
 extern uint32_t get_ebx(void);
 extern uint32_t get_ecx(void);
 extern uint32_t get_edx(void);
+extern uint32_t get_esi(void);
+extern uint32_t get_edi(void);
 
 #define BOOT_ADDR 0x7c00
+
+/* outputs a character to the debug console, if "port_e9_hack: enabled=1" is set in config */
+#define BOCHS_PRINT_CHAR(c) outportb(0xe9, c)
+/* stops simulation and breaks into the debug console */
+#define BOCHS_BREAK() outportw(0x8A00,0x8A00); outportw(0x8A00,0x08AE0);
 
 typedef struct {
   /* jmp short + nop + oem */
@@ -45,50 +53,6 @@ typedef struct {
   uint8_t partition_volume_label[11];
   uint8_t filesystem_type[8];
 } __attribute__((packed)) bpb_t;
-
-/*
-  before using the bochs macros, implement the "outport*()" functions
- */
-/* outputs a character to the debug console, if "port_e9_hack: enabled=1" is set in config */
-#define BOCHS_PRINT_CHAR(c) outportb(0xe9, c)
-/* stops simulation and breaks into the debug console */
-#define BOCHS_BREAK() outportw(0x8A00,0x8A00); outportw(0x8A00,0x08AE0);
-
-/*
-  Absolute Memory Location = (Segment value * 16) + Offset value
- */
-/*static inline uint32_t get_addr(uint16_t segment, uint16_t offset)
-{
-  return (segment << 4) + offset;
-}*/
-
-uint32_t strlen(const char* s)
-{
-  uint32_t i = 0;
-  while (*s++) {
-    i++;
-  }
-  return i;
-}
-
-/* We will use this later on for reading from the I/O ports to get data
-*  from devices such as the keyboard. We are using what is called
-*  'inline assembly' in these routines to actually do the work */
-uint8_t inportb (uint16_t port)
-{
-    uint8_t rv;
-    __asm__ __volatile__ ("inb %1, %0" : "=a" (rv) : "dN" (port));
-    return rv;
-}
-
-/* We will use this to write to I/O ports to send bytes to devices. This
-*  will be used in the next tutorial for changing the textmode cursor
-*  position. Again, we use some inline assembly for the stuff that simply
-*  cannot be done in C */
-void outportb (uint16_t port, uint8_t data)
-{
-    __asm__ __volatile__ ("outb %1, %0" : : "dN" (port), "a" (data));
-}
 
 void read_bpb() {
   bpb_t* bpb = (bpb_t*)BOOT_ADDR;
@@ -166,16 +130,28 @@ void dump_registers() {
   printstr("EAX: ");
   uint32_t eax = get_eax();
   printhl(eax);
-  printstr("\n");
 
-  printstr("EBX: ");
+  printstr(" EBX: ");
   uint32_t ebx = get_ebx();
   printhl(ebx);
-  printstr("\n");
 
-  printstr("ECX: ");
+  printstr(" ECX: ");
   uint32_t ecx = get_ecx();
   printhl(ecx);
+
+  printstr(" EDX: ");
+  uint32_t edx = get_edx();
+  printhl(edx);
+  printstr("\n");
+
+  printstr("ESI: ");
+  uint32_t esi = get_esi();
+  printhl(esi);
+
+  printstr(" EDI: ");
+  uint32_t edi = get_edi();
+  printhl(edi);
+
   printstr("\n");
 }
 
