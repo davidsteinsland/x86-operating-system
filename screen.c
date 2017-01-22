@@ -24,27 +24,33 @@ static inline uint16_t get_text_attribute(char c, uint8_t fg, uint8_t bg)
 /* clears whole screen */
 void clear_screen()
 {
-  uint16_t data = get_text_attribute(' ', WHITE, BLACK);
+  uint16_t blank = get_text_attribute(' ', WHITE, BLACK);
+  memsetw(screen, blank, SCREEN_ROWS * SCREEN_COLS);
 
-  int i;
+  /*int i;
   for (i = 0; i < SCREEN_ROWS * SCREEN_COLS; ++i) {
-    screen[i] = data;
-  }
+    screen[i] = blank;
+  }*/
 }
 
 /* moves all rows one up */
 void scroll() {
-  uint8_t i;
-  uint16_t prev = 0;
+  /* move everything one row back */
+  memcpyw(screen, screen + SCREEN_COLS, SCREEN_ROWS * SCREEN_COLS - SCREEN_COLS);
+  /* set last row to empty character */
+  uint16_t blank = get_text_attribute(' ', WHITE, BLACK);
+  memsetw(screen + SCREEN_ROWS * SCREEN_COLS - SCREEN_COLS, blank, SCREEN_COLS);
 
-  for (i = 1; i < SCREEN_ROWS; i++) {
-    /* copy current row to prevous one */
-    memcpyw(screen + prev, screen + prev + SCREEN_COLS, SCREEN_COLS);
-    prev += SCREEN_COLS;
-  }
-  /* zero out last row */
-  uint16_t c = get_text_attribute(' ', WHITE, BLACK);
-  memsetw(screen + prev, c, SCREEN_COLS);
+  // uint8_t i;
+  // uint16_t prev = 0;
+  // for (i = 1; i < SCREEN_ROWS; i++) {
+  //   /* copy current row to prevous one */
+  //   memcpyw(screen + prev, screen + prev + SCREEN_COLS, SCREEN_COLS);
+  //   prev += SCREEN_COLS;
+  // }
+  // /* zero out last row */
+  // uint16_t c = get_text_attribute(' ', WHITE, BLACK);
+  // memsetw(screen + prev, c, SCREEN_COLS);
 }
 
 /* prints a character at the given position */
@@ -104,10 +110,9 @@ void printstrl(char* s, uint8_t len) {
   }
 }
 
-
 void printint(uint8_t k) {
   char c = '0' + k;
-  screen_print(c, row, col++);
+  printc(c);
 }
 
 uint32_t number_of_digits(uint32_t k) {
@@ -120,45 +125,44 @@ uint32_t number_of_digits(uint32_t k) {
 }
 
 void printk(uint32_t k) {
-  uint8_t p;
+  uint32_t p, q;
 
-  uint32_t q = k;
-  uint32_t len = 0;
-
-  do {
-    q = q / 10;
-    len++;
-  } while (q > 0);
+  /* there's max. 10 digits in a 32 bit int */
+  char buf[10];
+  memset((uint8_t*)buf, 0, 10);
 
   q = 0;
-
-  /* col + len - q */
-
   do {
     p = k % 10;
     k = k / 10;
 
-    screen_print('0' + p, row, col + len - q - 1);
-    q++;
+    buf[10 - (q++) - 1] = '0' + p;
   } while (k > 0);
 
-  col += len;
+  for (p = 0; p < 10; p++) {
+    if (buf[p] == 0) {
+      continue;
+    }
+    printc(buf[p]);
+  }
 }
 
 void printhl(uint32_t dword) {
   /* print string representation of "word" as hex */
   char* alphabet = "0123456789ABCDEF";
 
-  uint8_t q = 0;
-  do {
-    char c = alphabet[dword % 16];
-    dword = dword / 16;
+  /* max. 8 nibbles in a 32 bit int */
+  char buf[8];
 
-    screen_print(c, row, col + 7 - q);
-    q++;
+  uint8_t p, q = 0;
+  do {
+    buf[8 - (q++) - 1] = alphabet[dword % 16];
+    dword = dword / 16;
   } while (q < 8);
 
-  col += q;
+  for (p = 0; p < q; p++) {
+    printc(buf[p]);
+  }
 }
 
 void printhw(uint16_t word) {
