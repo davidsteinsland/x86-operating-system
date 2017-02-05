@@ -191,14 +191,8 @@ void read_gdt() {
   }
 }
 
-void kernel_main()
-{
-  clear_screen();
-
-  /* magic breakpoint for bochs */
-  __asm__ __volatile__("xchg %bx, %bx");
-
-  /*gdt_t entries[3];
+void init_gdt() {
+  gdt_t entries[3];
   entries[1].limit1 = 0xffff;
   entries[1].base1 = 0x0000;
   entries[1].base2 = 0x00;
@@ -218,9 +212,18 @@ void kernel_main()
     .entries = &entries[0]
   };
 
+  gdt_create_entry(&entries[1], 0x00000000, 0x000fffff, 0x92, 0xcf);
+  gdt_create_entry(&entries[2], 0x00000000, 0x000fffff, 0x92, 0xcf);
+
   set_gdt(&gdtr, 0x08, 0x10);
-  __asm__ __volatile__("1: jmp 1b");
-  */
+}
+
+void kernel_main()
+{
+  clear_screen();
+
+  /* magic breakpoint for bochs */
+  __asm__ __volatile__("xchg %bx, %bx");
 
   read_gdt();
 
