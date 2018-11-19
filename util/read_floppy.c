@@ -160,7 +160,7 @@ void decode_fat(FILE* fp, bpb_t* bpb) {
 		buf[k] = fgetc(fp);
 	}
 
-	uint16_t fat_table[fat_size/3];
+	uint16_t fat_table[fat_size * 2/3];
 	uint16_t i = 0;
 
 	for (k = 0; k < fat_size/3; k++) {
